@@ -1961,6 +1961,18 @@ describe("object surface", () => {
     expect(containers.map((c) => c.name)).toContain("app");
   });
 
+  test("raises the second refusal when the retry without authorizedDatabases is refused too", async () => {
+    mockListDatabasesRefusal = (cmd) =>
+      cmd.authorizedDatabases === undefined
+        ? mongoServerError(13, "not authorized on admin to execute command")
+        : mongoServerError(2, FERRETDB_UNKNOWN_FIELD);
+    await expect(objectProvider.listContainers()).rejects.toThrow("not authorized on admin");
+    expect(listDatabasesCommands).toEqual([
+      { listDatabases: 1, nameOnly: true, authorizedDatabases: true },
+      { listDatabases: 1, nameOnly: true },
+    ]);
+  });
+
   test("does not retry a BadValue that is about something other than authorizedDatabases", async () => {
     mockListDatabasesRefusal = () => mongoServerError(2, "nameOnly is an unknown field");
     await expect(objectProvider.listContainers()).rejects.toThrow("nameOnly is an unknown field");
